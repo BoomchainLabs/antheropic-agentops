@@ -37,9 +37,79 @@ STREAMLIT_STYLE = """
     .stApp[data-test-script-state=running] .stChatInput textarea {
         display: none;
     }
-     /* Hide the streamlit deploy button */
+    /* Hide the streamlit deploy button */
     .stDeployButton {
         visibility: hidden;
+    }
+    
+    /* General app styling */
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Title styling */
+    h1 {
+        color: #7792E3;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #7792E3;
+        padding-bottom: 0.5rem;
+    }
+    
+    /* Chat message styling */
+    .stChatMessage {
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+        border: 1px solid rgba(119, 146, 227, 0.2);
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg, .css-12oz5g7 {
+        padding: 2rem 1rem;
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Input field styling */
+    .stTextInput>div>div>input, .stNumberInput>div>div>input, .stTextArea>div>div>textarea {
+        border-radius: 6px;
+        border: 1px solid rgba(119, 146, 227, 0.3);
+    }
+    
+    /* Chat input styling */
+    .stChatInput>div>div>textarea {
+        border-radius: 20px;
+        padding: 10px 15px;
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 1rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 4px 4px 0 0;
+    }
+    
+    /* Code block styling */
+    .stCodeBlock {
+        border-radius: 8px;
+    }
+    
+    /* Image display */
+    .stImage img {
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 </style>
 """
@@ -98,27 +168,44 @@ async def main():
 
     st.markdown(STREAMLIT_STYLE, unsafe_allow_html=True)
 
-    st.title("Claude Computer Use Demo")
-
+    st.markdown("<div style='text-align: center;'><h1>🤖 Claude Computer Use Demo</h1></div>", unsafe_allow_html=True)
+    
     if not os.getenv("HIDE_WARNING", False):
         st.warning(WARNING_TEXT)
+        
+    st.markdown("""
+        <div style='background-color: rgba(119, 146, 227, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #7792E3;'>
+        <p style='margin: 0;'>Welcome to the Claude Computer Use Demo! Ask Claude to control the computer or perform tasks for you.</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     with st.sidebar:
-
+        st.markdown("### ⚙️ Configuration")
+        
         def _reset_api_provider():
             if st.session_state.provider_radio != st.session_state.provider:
                 _reset_model()
                 st.session_state.provider = st.session_state.provider_radio
                 st.session_state.auth_validated = False
 
-        st.text_input("Model", key="model")
-
+        st.text_input("Model", key="model", help="The Claude model to use for this demo")
+        
+        st.markdown("---")
+        st.markdown("### 🖼️ Image Settings")
+        
         st.number_input(
             "Only send N most recent images",
             min_value=0,
             key="only_n_most_recent_images",
             help="To decrease the total tokens sent, remove older screenshots from the conversation",
         )
+        
+        st.checkbox("Hide screenshots", key="hide_images", 
+                   help="Toggle visibility of screenshots in the conversation")
+        
+        st.markdown("---")
+        st.markdown("### 🔧 Advanced")
+        
         st.text_area(
             "Custom System Prompt Suffix",
             key="custom_system_prompt",
@@ -127,10 +214,10 @@ async def main():
                 "system_prompt", st.session_state.custom_system_prompt
             ),
         )
-        st.checkbox("Hide screenshots", key="hide_images")
-
-        if st.button("Reset", type="primary"):
-            with st.spinner("Resetting..."):
+        
+        st.markdown("---")
+        if st.button("🔄 Reset Environment", type="primary", use_container_width=True):
+            with st.spinner("Resetting environment..."):
                 st.session_state.clear()
                 setup_state()
 
@@ -147,9 +234,9 @@ async def main():
         else:
             st.session_state.auth_validated = True
 
-    chat, http_logs = st.tabs(["Chat", "HTTP Exchange Logs"])
+    chat, http_logs = st.tabs(["💬 Chat", "🔄 HTTP Exchange Logs"])
     new_message = st.chat_input(
-        "Type a message to send to Claude to control the computer..."
+        "Ask Claude to control the computer..."
     )
 
     with chat:
@@ -302,22 +389,49 @@ def _render_message(
         and not hasattr(message, "output")
     ):
         return
-    with st.chat_message(sender):
+    
+    # Set avatar and style based on sender
+    avatar = None
+    if sender == Sender.USER:
+        avatar = "👤"
+    elif sender == Sender.BOT:
+        avatar = "🤖" 
+    elif sender == Sender.TOOL:
+        avatar = "🔧"
+    
+    with st.chat_message(sender, avatar=avatar):
         if is_tool_result:
             message = cast(ToolResult, message)
+            
+            # Handle tool output with better styling
             if message.output:
                 if message.__class__.__name__ == "CLIResult":
-                    st.code(message.output)
+                    st.markdown("**Terminal Output:**")
+                    st.code(message.output, language="bash")
                 else:
                     st.markdown(message.output)
+            
+            # Style errors better
             if message.error:
+                st.markdown("**Error:**")
                 st.error(message.error)
+            
+            # Improve image display with caption
             if message.base64_image and not st.session_state.hide_images:
-                st.image(base64.b64decode(message.base64_image))
+                st.markdown("**Screenshot:**")
+                st.image(
+                    base64.b64decode(message.base64_image),
+                    caption=f"Screenshot taken at {datetime.now().strftime('%H:%M:%S')}",
+                    use_column_width=True
+                )
+        
         elif isinstance(message, BetaTextBlock) or isinstance(message, TextBlock):
             st.write(message.text)
+        
         elif isinstance(message, BetaToolUseBlock) or isinstance(message, ToolUseBlock):
-            st.code(f"Tool Use: {message.name}\nInput: {message.input}")
+            st.markdown("**Tool Execution:**")
+            st.code(f"Tool: {message.name}\nInput: {message.input}", language="json")
+        
         else:
             st.markdown(message)
 
