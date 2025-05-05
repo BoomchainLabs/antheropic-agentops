@@ -7,3 +7,15 @@ channel = "stable-24_05"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[workflows]
+runButton = "Run"
+
+[[workflows.workflow]]
+name = "Run"
+author = 40604801
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run main.py --server.address=0.0.0.0 --server.port=5000"
