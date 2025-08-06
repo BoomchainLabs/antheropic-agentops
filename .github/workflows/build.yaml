@@ -39,7 +39,7 @@ jobs:
           short_sha=$(git rev-parse --short ${{ github.sha }})
           echo "TAG=${REGISTRY}:computer-use-demo-${short_sha}" >> "$GITHUB_ENV"
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/${{ matrix.platform }}
           context: computer-use-demo
@@ -83,7 +83,7 @@ jobs:
             echo "PUSH_TAGS=${TAG}-${{ matrix.platform }},${REGISTRY}:computer-use-demo-latest-${{ matrix.platform }}" >> "$GITHUB_ENV"
           fi
       - name: Push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           platforms: linux/${{ matrix.platform }}
           context: .
