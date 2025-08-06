@@ -10,7 +10,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.10.0,<3.12"
 typing-extensions = "^4.12.2"
-anthropic = "^0.36.2"
+anthropic = "^0.61.0"
 streamlit = "^1.39.0"
 
 [tool.pyright]
