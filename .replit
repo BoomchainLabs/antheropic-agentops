@@ -1,5 +1,5 @@
 run = ["streamlit", "run", "main.py"]
-modules = ["python-3.11", "web", "bash"]
+modules = ["bash", "nodejs-20", "python-3.11", "web"]
 
 [nix]
 channel = "stable-24_05"
@@ -7,3 +7,8 @@ channel = "stable-24_05"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 8976
+externalPort = 9000
+exposeLocalhost = true

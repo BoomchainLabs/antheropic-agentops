@@ -1,0 +1,152 @@
+To implement the service described at [AgentOps Documentation](https://docs.agentops.ai/v2/introduction), follow these step-by-step instructions:
+
+# Integrating with an Agent Framework or LLM Library
+
+1. **Install the AgentOps SDK**:
+   
+   Begin by installing the AgentOps Python SDK using pip:
+
+   ```bash
+   pip install agentops
+   ```
+
+2. **Obtain Your API Key**:
+   
+   Create an account on [AgentOps](https://www.agentops.ai/) and generate an API key from the settings page.
+
+3. **Initialize AgentOps in Your Application**:
+   
+   Import the AgentOps module and initialize it with your API key at the beginning of your main program file. This is usually the entry point of your application such as main.py or app.py:
+
+   ```python
+   import agentops
+
+   agentops.init("YOUR_API_KEY", tags=["your", "tags", "here"], trace_name="My Agentic Workflow")
+   ```
+
+   This initialization automatically starts a session to track your application's activities. This works for the following agent frameworks and LLM libraries:
+
+   - crewai
+   - agno
+   - autogen
+   - pyautogen
+   - llama_index
+   - langchain
+   - openai
+   - ag2
+   - anthropic
+   - auto_gen
+   - crewai
+   - google_adk
+   - google_genai
+   - langgraph
+   - llama_index
+   - litellm
+   - mem0
+   - openai
+   - openai_agents_sdk
+   - smolagents
+   - ibm_watsonx_ai
+
+   It is *very* important that you import the library/framework/LLM provider *before* you import and initialize the AgentOps.
+   
+   Frequently, applications will have an entry point but multiple workflows, threads, or processes (such as an API or a web app) that need to be tracked. In this case, you can manually start a session for each workflow, thread, or process.
+
+   ```python
+   import agentops
+
+   agentops.init(auto_start_session=False, tags=["your", "tags", "here"])
+   ```
+
+   Then, you can manually start a session for each workflow, thread, or process. For example, if you have an API that needs to be tracked, you can start a session for each request.
+
+   ```python
+   import agentops
+
+   tracer = agentops.start_trace(trace_name="Separate Workflow", tags=["your", "tags", "here"])
+   ...
+   agentops.end_trace(tracer, end_state="Success")
+
+   # Or, if you want to end all active traces at once:
+   agentops.end_trace(end_state="Success")
+   ```
+
+   Note: If you are using an agent framework or LLM library, this is the ONLY thing you need to do. No need to add additional decorators to instrument your code.
+
+# Integrating without an Agent Framework
+
+Sometimes, you may not be using an agent framework or LLM library like crew, autogen, or langgraph but are still using an LLM provider like Litellm, gemini, anthropic, or openai. In this case, you can can still use the AgentOps SDK to instrument LLM  calls automatically but your code will need to be instrumented.
+
+1. **Instrument Your Code with Decorators**:
+   
+   Use AgentOps decorators to monitor specific functions and classes:
+
+   - **Track Custom Operations**:
+
+     ```python
+     from agentops.sdk.decorators import operation
+
+     @operation
+     def process_data(data):
+         processed_result = data.upper()
+         return processed_result
+     ```
+
+   - **Track Agent Logic**:
+
+     ```python
+     from agentops.sdk.decorators import agent, operation
+
+     @agent(name="MyCustomAgent")
+     class MyAgent:
+         def __init__(self, agent_id):
+             self.agent_id = agent_id
+
+         @operation
+         def perform_task(self, task_description):
+             return f"Agent {self.agent_id} completed: {task_description}"
+     ```
+
+   - **Track Tool Usage**:
+
+     ```python
+     from agentops.sdk.decorators import tool
+
+     @tool(name="WebSearchTool", cost=0.05)
+     def web_search(query: str) -> str:
+         return f"Search results for: {query}"
+     ```
+
+2. **Manage Traces for Complex Workflows**:
+   
+   For more control over tracing, use the `@trace` decorator or manage traces manually:
+
+   - **Using the `@trace` Decorator**:
+
+     ```python
+     from agentops.sdk.decorators import trace
+
+     @trace(name="MyMainWorkflow", tags=["main-flow"])
+     def my_workflow(task_to_perform):
+         main_agent = MyAgent(agent_id="workflow-agent")
+         result = main_agent.perform_task(task_to_perform)
+         tool_result = web_search(f"details for {task_to_perform}")
+         return result, tool_result
+     ```
+
+   - **Managing Traces Manually**:
+
+     ```python
+     import agentops
+
+     custom_trace = agentops.start_trace(name="MyManualWorkflow", tags=["manual-flow"])
+     try:
+         main_agent = MyAgent(agent_id="manual-workflow-agent")
+         result = main_agent.perform_task("another complex task")
+         tool_result = web_search(f"info for {result}")
+         agentops.end_trace(custom_trace, end_state="Success")
+     except Exception as e:
+         if custom_trace:
+             agentops.end_trace(custom_trace, end_state="Fail")
+         raise
+     ```
