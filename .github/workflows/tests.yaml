@@ -12,7 +12,7 @@ jobs:
         working-directory: computer-use-demo
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v1
+      - uses: astral-sh/ruff-action@v3
   pyright:
     runs-on: ubuntu-latest
     defaults:
